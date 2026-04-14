@@ -62,7 +62,8 @@ export default function App() {
       console.log("📡 Sending request to backend...");
 
       // const response = await fetch("http://localhost:5000/generate", {
-       const response = await fetch("https://builder-ybob.onrender.com/generate", {
+      const backendUrl = import.meta.env.VITE_API_URL || "https://builder-ybob.onrender.com";
+      const response = await fetch(`${backendUrl}/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -77,7 +78,13 @@ export default function App() {
       console.log("✅ API Response:", data);
       console.log("💻 Generated Code:", data.code);
 
-      setGeneratedCode(data.code);
+      if (data.error) {
+        console.error("❌ API Error:", data.error, data.details);
+        alert(`Error: ${data.details || data.error}`);
+        return;
+      }
+
+      setGeneratedCode(data.code || "");
       setHasGenerated(true);
 
     } catch (error) {
@@ -450,9 +457,9 @@ export default function App() {
                             }}
                             layout="preview"
                             files={{
-                              "/App.js": generatedCode.includes("import React")
+                              "/App.js": (generatedCode || "").includes("import React")
                                 ? generatedCode
-                                : `import React from "react";\n${generatedCode}`,
+                                : `import React from "react";\n${generatedCode || ""}`,
                               "/index.js": `import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";

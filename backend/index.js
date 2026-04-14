@@ -5,11 +5,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 dotenv.config();
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+const API_KEY = process.env.API_KEY;
 
-const genAI = new GoogleGenerativeAI(process.env.API_KEY);
+if (!API_KEY) {
+  console.error("❌ ERROR: API_KEY is not defined in environment variables!");
+}
+
+const genAI = new GoogleGenerativeAI(API_KEY || "DUMMY_KEY");
 
 app.get("/", (req, res) => {
   res.send("GenAI Backend Server is running!");
