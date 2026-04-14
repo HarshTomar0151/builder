@@ -29,7 +29,10 @@ import {
   Loader2,
   Copy,
   Check,
-  EyeOff
+  EyeOff,
+  PanelLeftClose,
+  PanelLeftOpen,
+  FileCode2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,7 +41,9 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Sandpack } from "@codesandbox/sandpack-react";
+import { SandpackProvider, SandpackLayout, SandpackPreview } from "@codesandbox/sandpack-react";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 export default function App() {
   const [prompt, setPrompt] = React.useState("");
@@ -49,6 +54,7 @@ export default function App() {
   const [generatedCode, setGeneratedCode] = React.useState("");
   const [isViewCode, setIsViewCode] = React.useState(false);
   const [isCopied, setIsCopied] = React.useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -104,11 +110,81 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "index.html";
+    a.download = "App.jsx";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadZip = async () => {
+    if (!generatedCode) return;
+
+    const zip = new JSZip();
+
+    // package.json
+    const packageJson = {
+      name: "generated-website",
+      version: "1.0.0",
+      main: "src/index.js",
+      dependencies: {
+        "react": "^18.0.0",
+        "react-dom": "^18.0.0",
+        "lucide-react": "latest",
+        "framer-motion": "latest",
+        "clsx": "latest",
+        "tailwind-merge": "latest"
+      },
+      scripts: {
+        "start": "react-scripts start",
+        "build": "react-scripts build"
+      }
+    };
+
+    // index.js
+    const indexJs = `import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);`;
+
+    // index.css
+    const indexCss = `@tailwind base;
+@tailwind components;
+@tailwind utilities;`;
+
+    // tailwind.config.js
+    const tailwindConfig = `/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/**/*.{js,jsx,ts,tsx}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}`;
+
+    // App.js (the generated code)
+    const appJs = (generatedCode || "").includes("import React")
+      ? generatedCode
+      : `import React from "react";\n${generatedCode || ""}`;
+
+    zip.file("package.json", JSON.stringify(packageJson, null, 2));
+    const src = zip.folder("src");
+    src.file("App.js", appJs);
+    src.file("index.js", indexJs);
+    src.file("index.css", indexCss);
+    zip.file("tailwind.config.js", tailwindConfig);
+
+    const content = await zip.generateAsync({ type: "blob" });
+    saveAs(content, "website-source.zip");
   };
 
   const handleCopy = () => {
@@ -192,150 +268,171 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <main className="max-w-[1600px] mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 h-[calc(100vh-80px)]">
+      <main className={cn(
+        "max-w-[1700px] mx-auto p-4 lg:p-6 grid gap-6 transition-all duration-500 ease-in-out h-[calc(100vh-80px)]",
+        isSidebarOpen ? "grid-cols-1 lg:grid-cols-[400px_1fr]" : "grid-cols-1"
+      )}>
         {/* Left Panel: Controls */}
-        <div className="flex flex-col gap-6 h-full">
-          <Card className="flex-1 bg-zinc-900/50 border-zinc-800/50 backdrop-blur-sm flex flex-col overflow-hidden shadow-2xl">
-            <div className="p-4 border-b border-zinc-800/50 flex items-center justify-between bg-zinc-900/80">
-              <div className="flex items-center gap-2">
-                <Layout className="w-4 h-4 text-indigo-400" />
-                <span className="text-sm font-semibold text-zinc-200 uppercase tracking-wider">Editor</span>
-              </div>
-              <Badge variant="outline" className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 text-[10px] font-bold">
-                BETA
-              </Badge>
-            </div>
-
-            <ScrollArea className="flex-1 p-6">
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    What are we building today?
-                  </label>
-                  <div className="relative group">
-                    <Textarea
-                      placeholder="e.g. A modern portfolio for a creative developer with a dark theme, bento grid layout, and smooth scroll animations..."
-                      className="min-h-[240px] bg-zinc-950/50 border-zinc-800 focus:border-indigo-500/50 focus:ring-indigo-500/20 transition-all resize-none text-zinc-200 placeholder:text-zinc-600 p-4 leading-relaxed"
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                    />
-                    <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-0 group-focus-within:opacity-100 transition-opacity">
-                      <span className="text-[10px] text-zinc-500 font-mono">Press ⌘ + Enter to generate</span>
+        <AnimatePresence>
+          {isSidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0, x: -20, width: 0 }}
+              animate={{ opacity: 1, x: 0, width: "auto" }}
+              exit={{ opacity: 0, x: -20, width: 0 }}
+              className="flex flex-col gap-6 h-full overflow-hidden"
+            >
+              <Card className="flex-1 bg-zinc-900/50 border-zinc-800/50 backdrop-blur-sm flex flex-col overflow-hidden shadow-2xl">
+                <div className="p-4 border-b border-zinc-800/50 flex items-center justify-between bg-zinc-900/80">
+                  <div className="flex items-center gap-2">
+                    <Layout className="w-4 h-4 text-indigo-400" />
+                    <span className="text-sm font-semibold text-zinc-200 uppercase tracking-wider">Editor</span>
+                  </div>
+                  <Badge variant="outline" className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 text-[10px] font-bold">
+                    BETA
+                  </Badge>
+                </div>
+              </Card>
+              <ScrollArea className="flex-1 p-6">
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      What are we building today?
+                    </label>
+                    <div className="relative group">
+                      <Textarea
+                        placeholder="e.g. A modern portfolio for a creative developer with a dark theme, bento grid layout, and smooth scroll animations..."
+                        className="min-h-[240px] bg-zinc-950/50 border-zinc-800 focus:border-indigo-500/50 focus:ring-indigo-500/20 transition-all resize-none text-zinc-200 placeholder:text-zinc-600 p-4 leading-relaxed"
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                      />
+                      <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-0 group-focus-within:opacity-100 transition-opacity">
+                        <span className="text-[10px] text-zinc-500 font-mono">Press ⌘ + Enter to generate</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-4">
-                  <Button
-                    onClick={handleGenerate}
-                    disabled={isGenerating || !prompt.trim()}
-                    className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-base shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98] disabled:opacity-50"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Generating Magic...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-5 h-5 mr-2" />
-                        Generate Website
-                      </>
+                  <div className="space-y-4">
+                    <Button
+                      onClick={handleGenerate}
+                      disabled={isGenerating || !prompt.trim()}
+                      className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-base shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          Generating Magic...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-5 h-5 mr-2" />
+                          Generate Website
+                        </>
+                      )}
+                    </Button>
+
+                    {hasGenerated && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button
+                          variant="outline"
+                          onClick={handleRegenerate}
+                          className="border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-300"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Regenerate
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={handleDownloadZip}
+                          className="border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-300"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download ZIP
+                        </Button>
+                      </div>
                     )}
-                  </Button>
+                  </div>
 
-                  {hasGenerated && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={handleRegenerate}
-                        className="border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-300"
-                      >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Regenerate
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={handleDownload}
-                        className="border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-300"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </Button>
+                  <Separator className="bg-zinc-800/50" />
+
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Recent Prompts</h3>
+                    <div className="space-y-2">
+                      {[
+                        "SaaS Landing Page for AI Tool",
+                        "Personal Blog with Minimalist UI",
+                        "E-commerce Store for Sneakers"
+                      ].map((item, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setPrompt(item)}
+                          className="w-full text-left p-3 rounded-lg bg-zinc-950/30 border border-zinc-800/30 hover:border-zinc-700 hover:bg-zinc-800/30 transition-all group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-zinc-400 group-hover:text-zinc-200 truncate pr-4">{item}</span>
+                            <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                  )}
-                </div>
-
-                <Separator className="bg-zinc-800/50" />
-
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Recent Prompts</h3>
-                  <div className="space-y-2">
-                    {[
-                      "SaaS Landing Page for AI Tool",
-                      "Personal Blog with Minimalist UI",
-                      "E-commerce Store for Sneakers"
-                    ].map((item, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setPrompt(item)}
-                        className="w-full text-left p-3 rounded-lg bg-zinc-950/30 border border-zinc-800/30 hover:border-zinc-700 hover:bg-zinc-800/30 transition-all group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-zinc-400 group-hover:text-zinc-200 truncate pr-4">{item}</span>
-                          <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
-                        </div>
-                      </button>
-                    ))}
                   </div>
                 </div>
-              </div>
-            </ScrollArea>
+              </ScrollArea>
 
-            <div className="p-4 bg-zinc-950/50 border-t border-zinc-800/50 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-zinc-500">
-                <History className="w-4 h-4" />
-                <span className="text-xs font-medium">Auto-saved 2m ago</span>
+              <div className="p-4 bg-zinc-950/50 border-t border-zinc-800/50 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-zinc-500">
+                  <History className="w-4 h-4" />
+                  <span className="text-xs font-medium">Auto-saved 2m ago</span>
+                </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-zinc-200">
+                  <Settings className="w-4 h-4" />
+                </Button>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-zinc-200">
-                <Settings className="w-4 h-4" />
-              </Button>
-            </div>
-          </Card>
-        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Right Panel: Live Preview */}
-        <div className="flex flex-col gap-4 h-full">
+        <div className="flex flex-col gap-4 h-full min-w-0">
           <div className="flex items-center justify-between px-2">
-            <div className="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-xl border border-zinc-800/50">
+            <div className="flex items-center gap-3">
               <Button
-                variant={previewMode === "desktop" ? "secondary" : "ghost"}
-                size="sm"
-                className={cn("h-8 px-3 rounded-lg", previewMode === "desktop" ? "bg-zinc-800 text-white" : "text-zinc-500")}
-                onClick={() => setPreviewMode("desktop")}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-zinc-400 hover:text-white bg-zinc-900/50 border border-zinc-800"
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               >
-                <Monitor className="w-4 h-4 mr-2" />
-                Desktop
+                {isSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
               </Button>
-              <Button
-                variant={previewMode === "tablet" ? "secondary" : "ghost"}
-                size="sm"
-                className={cn("h-8 px-3 rounded-lg", previewMode === "tablet" ? "bg-zinc-800 text-white" : "text-zinc-500")}
-                onClick={() => setPreviewMode("tablet")}
-              >
-                <Tablet className="w-4 h-4 mr-2" />
-                Tablet
-              </Button>
-              <Button
-                variant={previewMode === "mobile" ? "secondary" : "ghost"}
-                size="sm"
-                className={cn("h-8 px-3 rounded-lg", previewMode === "mobile" ? "bg-zinc-800 text-white" : "text-zinc-500")}
-                onClick={() => setPreviewMode("mobile")}
-              >
-                <Smartphone className="w-4 h-4 mr-2" />
-                Mobile
-              </Button>
+
+              <div className="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-xl border border-zinc-800/50">
+                <Button
+                  variant={previewMode === "desktop" ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn("h-8 px-3 rounded-lg", previewMode === "desktop" ? "bg-zinc-800 text-white" : "text-zinc-500")}
+                  onClick={() => setPreviewMode("desktop")}
+                >
+                  <Monitor className="w-4 h-4 mr-2" />
+                  Desktop
+                </Button>
+                <Button
+                  variant={previewMode === "tablet" ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn("h-8 px-3 rounded-lg", previewMode === "tablet" ? "bg-zinc-800 text-white" : "text-zinc-500")}
+                  onClick={() => setPreviewMode("tablet")}
+                >
+                  <Tablet className="w-4 h-4 mr-2" />
+                  Tablet
+                </Button>
+                <Button
+                  variant={previewMode === "mobile" ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn("h-8 px-3 rounded-lg", previewMode === "mobile" ? "bg-zinc-800 text-white" : "text-zinc-500")}
+                  onClick={() => setPreviewMode("mobile")}
+                >
+                  <Smartphone className="w-4 h-4 mr-2" />
+                  Mobile
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -370,7 +467,7 @@ export default function App() {
               <div className="w-20" /> {/* Spacer */}
             </div>
 
-            <div className="absolute inset-0 pt-10 flex flex-col bg-zinc-950 h-full min-h-0">
+            <div className="absolute inset-0 pt-0 flex flex-col bg-zinc-950 h-full min-h-0">
               <AnimatePresence mode="wait">
                 {isGenerating ? (
                   <motion.div
@@ -378,7 +475,7 @@ export default function App() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 1.1 }}
-                    className="flex flex-col items-center gap-6 text-center px-6"
+                    className="flex flex-col pt-10 h-full items-center gap-6 text-center px-6"
                   >
                     <div className="relative">
                       <div className="w-24 h-24 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
@@ -445,17 +542,10 @@ export default function App() {
                           className="w-full h-full border-0"
                           title="Website Preview"
                         /> */}
-                        <div className="flex-1 w-full min-h-0 h-full">
-                          <Sandpack
+                        <div className="flex-1 w-full min-h-0 h-full relative">
+                          <SandpackProvider
                             template="react"
                             theme="dark"
-                            options={{
-                              externalResources: ["https://cdn.tailwindcss.com"],
-                              showNavigator: false,
-                              showTabs: false,
-                              editorHeight: "100%",
-                            }}
-                            layout="preview"
                             files={{
                               "/App.js": (generatedCode || "").includes("import React")
                                 ? generatedCode
@@ -468,8 +558,17 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(<App />);
 `,
                             }}
-                            style={{ height: "100%", width: "100%" }}
-                          />
+                            options={{
+                              externalResources: ["https://cdn.tailwindcss.com"],
+                            }}
+                          >
+                            <SandpackLayout style={{ height: "100%", width: "100%", border: "none" }}>
+                              <SandpackPreview
+                                style={{ height: "100%", width: "100%" }}
+                                showNavigator={false}
+                              />
+                            </SandpackLayout>
+                          </SandpackProvider>
                         </div>
                       </div>
                     )}
@@ -479,7 +578,7 @@ root.render(<App />);
                     key="empty"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex flex-col items-center gap-6 text-center px-6"
+                    className="flex flex-col pt-0 h-full justify-center items-center gap-6 text-center px-6"
                   >
                     <div className="w-20 h-20 rounded-3xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shadow-inner">
                       <Eye className="w-10 h-10 text-zinc-700" />
