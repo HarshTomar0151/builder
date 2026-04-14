@@ -13,6 +13,10 @@ if (!API_KEY) {
 
 const genAI = new GoogleGenerativeAI(API_KEY || "DUMMY_KEY");
 
+const app = express();
+app.use(cors());
+app.use(express.json());
+
 app.get("/", (req, res) => {
   res.send("GenAI Backend Server is running!");
 });
