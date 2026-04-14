@@ -61,7 +61,8 @@ export default function App() {
     try {
       console.log("📡 Sending request to backend...");
 
-      const response = await fetch("http://localhost:5000/generate", {
+      // const response = await fetch("http://localhost:5000/generate", {
+       const response = await fetch("https://builder-ybob.onrender.com/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
