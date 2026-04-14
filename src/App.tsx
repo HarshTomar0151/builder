@@ -150,7 +150,7 @@ export default function App() {
                 <Twitter className="w-5 h-5" />
               </Button>
             </div>
-            <Button variant="outline" className="hidden sm:flex border-zinc-800 hover:bg-zinc-800 text-zinc-300">
+            <Button variant="outline" className="hidden sm:flex border-zinc-800 hover:bg-white text-[#000]">
               Sign In
             </Button>
             <Button className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20">
