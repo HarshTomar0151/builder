@@ -28,13 +28,25 @@ app.post("/generate", async (req, res) => {
     });
 
     const result = await model.generateContent(
-      prompt + " Return ONLY clean HTML, CSS, JS code. No explanation."
+      prompt +
+        ` Return ONLY a single React functional component as the default export. 
+Rules:
+- Use "export default function App() { ... }" syntax.
+- Do NOT include any import statements (React is available globally).
+- Use Tailwind CSS classes for all styling.
+- Do NOT use HTML document tags like <!DOCTYPE>, <html>, <head>, or <body>.
+- Do NOT use React Router or any external libraries.
+- The component must be a self-contained, single-file React component.
+- Return ONLY the code, no explanation, no markdown fences.`
     );
 
     let code = result.response.text();
 
     // clean markdown code fences
-    code = code.replace(/```html|```css|```js|```javascript|```/g, "").trim();
+    code = code.replace(/```jsx|```tsx|```html|```css|```js|```javascript|```/g, "").trim();
+    
+    // Remove any import statements that Gemini might still include
+    code = code.replace(/^import\s+.*?;\s*\n/gm, "");
 
     res.json({ code });
   } catch (err) {

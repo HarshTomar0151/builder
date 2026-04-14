@@ -38,6 +38,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { Sandpack } from "@codesandbox/sandpack-react";
 
 export default function App() {
   const [prompt, setPrompt] = React.useState("");
@@ -330,9 +331,9 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button 
-                variant={isViewCode ? "secondary" : "ghost"} 
-                size="sm" 
+              <Button
+                variant={isViewCode ? "secondary" : "ghost"}
+                size="sm"
                 className={cn("h-8 px-3 rounded-lg", isViewCode ? "bg-indigo-500/10 text-indigo-400" : "text-zinc-400 hover:text-white")}
                 onClick={() => setIsViewCode(!isViewCode)}
               >
@@ -361,7 +362,7 @@ export default function App() {
               <div className="w-20" /> {/* Spacer */}
             </div>
 
-            <div className="absolute inset-0 pt-10 flex items-center justify-center bg-zinc-950">
+            <div className="absolute inset-0 pt-10 flex flex-col bg-zinc-950 h-full min-h-0">
               <AnimatePresence mode="wait">
                 {isGenerating ? (
                   <motion.div
@@ -395,7 +396,7 @@ export default function App() {
                     </div>
                   </motion.div>
                 ) : hasGenerated ? (
-                  <motion.div 
+                  <motion.div
                     key="preview"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -408,9 +409,9 @@ export default function App() {
                             <Code2 className="w-4 h-4 text-indigo-400" />
                             <span className="text-xs font-mono text-zinc-400">Source Code</span>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-8 text-zinc-400 hover:text-white"
                             onClick={handleCopy}
                           >
@@ -431,11 +432,37 @@ export default function App() {
                         previewMode === "tablet" && "w-[768px] border-x border-zinc-800 mx-auto",
                         previewMode === "mobile" && "w-[375px] border-x border-zinc-800 mx-auto"
                       )}>
-                        <iframe 
+                        {/* <iframe 
                           srcDoc={generatedCode}
                           className="w-full h-full border-0"
                           title="Website Preview"
-                        />
+                        /> */}
+                        <div className="flex-1 w-full min-h-0 h-full">
+                          <Sandpack
+                            template="react"
+                            theme="dark"
+                            options={{
+                              externalResources: ["https://cdn.tailwindcss.com"],
+                              showNavigator: false,
+                              showTabs: false,
+                              editorHeight: "100%",
+                            }}
+                            layout="preview"
+                            files={{
+                              "/App.js": generatedCode.includes("import React")
+                                ? generatedCode
+                                : `import React from "react";\n${generatedCode}`,
+                              "/index.js": `import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+`,
+                            }}
+                            style={{ height: "100%", width: "100%" }}
+                          />
+                        </div>
                       </div>
                     )}
                   </motion.div>
