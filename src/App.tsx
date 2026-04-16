@@ -477,24 +477,17 @@ export default function App() {
         body: JSON.stringify({ prompt }),
       });
 
-      if (!response.ok) {
-        let errorData: any = {};
-        try {
-          errorData = await response.json();
-        } catch {
-          // If response is not JSON (e.g. Render 500 HTML page)
-          throw new Error(`Server error: ${response.status} ${response.statusText}`);
-        }
-        
-        if (errorData.limitReached) {
-          setLimitError(errorData.error);
-          return;
-        }
+      const data = await response.json();
 
-        throw new Error(errorData.details || errorData.error || `Server returned ${response.status}`);
+      if (data.limitReached) {
+        setLimitError(data.error);
+        return;
       }
 
-      const data = await response.json();
+      if (data.error) {
+        alert(`Error: ${data.details || data.error}`);
+        return;
+      }
 
       setGeneratedCode(data.code || "");
       setHasGenerated(true);
