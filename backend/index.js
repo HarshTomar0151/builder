@@ -235,6 +235,12 @@ Rules:
   }
 });
 
+// Catch-all for 404s to log what is hitting the server
+app.use((req, res) => {
+  console.log(`❌ 404 Not Found: ${req.method} ${req.url}`);
+  res.status(404).json({ error: "Route not found on this server." });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);

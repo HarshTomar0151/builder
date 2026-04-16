@@ -71,7 +71,9 @@ async function apiSignup(email: string, password: string) {
 }
 
 async function apiLogin(email: string, password: string) {
-  const res = await fetch(`${getBackendUrl()}/auth/login`, {
+  const url = `${getBackendUrl()}/auth/login`;
+  console.log("🛠️ Attempting Login at URL:", url);
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
