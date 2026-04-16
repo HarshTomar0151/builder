@@ -47,10 +47,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// Handle preflight for all routes
-app.options("*", cors());
-
-// ─── Auth Middleware ───────────────────────────────────────────────────────────
+// Auth Middleware ───────────────────────────────────────────────────────────
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
