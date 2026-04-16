@@ -420,6 +420,8 @@ export default function App() {
 
   // On mount: check saved token
   React.useEffect(() => {
+    console.log("🚀 App started. Target Backend:", getBackendUrl());
+    
     const savedToken = localStorage.getItem("auth_token");
     if (savedToken) {
       apiMe(savedToken)
@@ -477,17 +479,24 @@ export default function App() {
         body: JSON.stringify({ prompt }),
       });
 
+      if (!response.ok) {
+        let errorData: any = {};
+        try {
+          errorData = await response.json();
+        } catch {
+          // If response is not JSON (e.g. Render 500 HTML page)
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+        
+        if (errorData.limitReached) {
+          setLimitError(errorData.error);
+          return;
+        }
+
+        throw new Error(errorData.details || errorData.error || `Server returned ${response.status}`);
+      }
+
       const data = await response.json();
-
-      if (data.limitReached) {
-        setLimitError(data.error);
-        return;
-      }
-
-      if (data.error) {
-        alert(`Error: ${data.details || data.error}`);
-        return;
-      }
 
       setGeneratedCode(data.code || "");
       setHasGenerated(true);
@@ -496,8 +505,9 @@ export default function App() {
       if (authUser && data.websitesGenerated !== undefined) {
         setAuthUser({ ...authUser, websitesGenerated: data.websitesGenerated });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error generating code:", error);
+      alert(`Generation Failed: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }

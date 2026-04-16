@@ -18,7 +18,13 @@ const JWT_SECRET = process.env.JWT_SECRET || "super_secret_jwt_key_change_in_pro
 const MAX_WEBSITES = 3;
 
 if (!API_KEY) {
-  console.error("❌ ERROR: API_KEY is not defined in environment variables!");
+  console.error("❌ ERROR: API_KEY is missing! Check Render Environment Variables.");
+} else {
+  console.log("✅ API_KEY is detected.");
+}
+
+if (!process.env.JWT_SECRET) {
+  console.warn("⚠️ WARNING: JWT_SECRET is not set. Using default secret.");
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY || "DUMMY_KEY");
@@ -155,8 +161,16 @@ app.post("/generate", authMiddleware, async (req, res) => {
 
     if (user.websitesGenerated >= MAX_WEBSITES) {
       return res.status(403).json({
-        error: `Website limit reached. You have already generated ${MAX_WEBSITES} websites. Upgrade your plan to generate more.`,
+        error: "Website generation limit reached.",
+        details: `You have reached your free tier limit of ${MAX_WEBSITES} websites.`,
         limitReached: true,
+      });
+    }
+
+    if (!API_KEY || API_KEY === "DUMMY_KEY") {
+      return res.status(500).json({
+        error: "Server Configuration Error",
+        details: "Gemini API_KEY is missing in production environment. Please set it in Render settings.",
       });
     }
 
