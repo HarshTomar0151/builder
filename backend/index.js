@@ -30,8 +30,25 @@ if (!process.env.JWT_SECRET) {
 const genAI = new GoogleGenerativeAI(API_KEY || "DUMMY_KEY");
 
 const app = express();
-app.use(cors());
+
+// Detailed Request Logger
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
+// Explicit CORS configuration
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
+
 app.use(express.json());
+
+// Handle preflight for all routes
+app.options("*", cors());
 
 // ─── Auth Middleware ───────────────────────────────────────────────────────────
 function authMiddleware(req, res, next) {
