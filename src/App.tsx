@@ -71,9 +71,7 @@ async function apiSignup(email: string, password: string) {
 }
 
 async function apiLogin(email: string, password: string) {
-  const url = `${getBackendUrl()}/auth/login`;
-  console.log("🛠️ Attempting Login at URL:", url);
-  const res = await fetch(url, {
+  const res = await fetch(`${getBackendUrl()}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -422,8 +420,6 @@ export default function App() {
 
   // On mount: check saved token
   React.useEffect(() => {
-    console.log("🚀 App started. Target Backend:", getBackendUrl());
-    
     const savedToken = localStorage.getItem("auth_token");
     if (savedToken) {
       apiMe(savedToken)
@@ -507,9 +503,8 @@ export default function App() {
       if (authUser && data.websitesGenerated !== undefined) {
         setAuthUser({ ...authUser, websitesGenerated: data.websitesGenerated });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("❌ Error generating code:", error);
-      alert(`Generation Failed: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }
