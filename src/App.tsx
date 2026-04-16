@@ -59,7 +59,7 @@ interface AuthUser {
 
 // ─── Auth API helpers ─────────────────────────────────────────────────────────
 const getBackendUrl = () =>
-  import.meta.env.VITE_API_URL || "https://builder-ybob.onrender.com";
+  import.meta.env.VITE_API_URL || "https://builder-vbsb.onrender.com";
 
 async function apiSignup(email: string, password: string) {
   const res = await fetch(`${getBackendUrl()}/auth/signup`, {
