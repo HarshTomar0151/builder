@@ -17,7 +17,14 @@
     "id": "1776353175306",
     "email": "harsh.tomar+1@digimonk.in",
     "passwordHash": "$2b$10$rv6bf.oskx9g1pVz5VhPv.Uzx/73WRweZ/tff3I8HZD4F6XAUQtBG",
-    "websitesGenerated": 2,
+    "websitesGenerated": 3,
     "createdAt": "2026-04-16T15:26:15.307Z"
+  },
+  {
+    "id": "1776359973226",
+    "email": "harsh.tomar+3@digimonk.in",
+    "passwordHash": "$2b$10$FxD75prGgaykRRiKezKWXOSkkHv4hKFKkNGelVBFHKbuUVWQsfw.u",
+    "websitesGenerated": 1,
+    "createdAt": "2026-04-16T17:19:33.226Z"
   }
 ]
